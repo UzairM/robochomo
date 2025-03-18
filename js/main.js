@@ -4,6 +4,7 @@ const audioPlayer = document.getElementById('audioPlayer');
 const playButton = document.getElementById('playButton');
 const canvas = document.getElementById('visualizer');
 const ctx = canvas.getContext('2d');
+const cssVisualizer = document.getElementById('css-visualizer');
 
 // Robot control buttons
 const ledButtons = document.querySelectorAll('.led-button');
@@ -17,6 +18,10 @@ let lastBeatTime = 0;
 let beatThreshold = 200; // ms between beats
 let beatDetected = false;
 let useSimpleVisualizer = true; // Set to true by default for Ohmni WebView
+let danceInterval = null; // Interval for robot dancing
+
+// Always use CSS visualizer for Ohmni
+document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
 
 // Movement constants
 const MOVE_SPEED = 70;
@@ -63,6 +68,8 @@ const robotApi = {
   dance: function(intensity) {
     if (!this.isConnected) return;
     
+    console.log('Dancing with intensity:', intensity);
+    
     const speed = Math.floor(intensity * 80);
     Ohmni.move(speed, -speed, 300); // Turn quickly one way
     setTimeout(() => {
@@ -73,6 +80,8 @@ const robotApi = {
   // Move robot's neck to beat
   shakeNeck: function(intensity) {
     if (!this.isConnected) return;
+    
+    console.log('Shaking neck with intensity:', intensity);
     
     // Current neck position plus random movement based on intensity
     const movement = Math.floor(intensity * 50);
@@ -87,6 +96,8 @@ const robotApi = {
   // Cycle LED colors
   cycleColor: function() {
     if (!this.isConnected) return;
+    
+    console.log('Cycling color to next');
     
     this.currentColorIndex = (this.currentColorIndex + 1) % this.colors.length;
     const color = this.colors[this.currentColorIndex];
@@ -235,28 +246,44 @@ function setupSimpleAudioDetection() {
   ctx.fillStyle = 'rgb(0, 0, 0)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Set up a simple timer-based "visualizer"
-  setInterval(() => {
+  console.log("Setting up simple audio detection");
+  
+  // Show CSS visualizer and hide canvas
+  document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
+}
+
+// Simple timer-based robot dance
+function startRobotDance() {
+  // Clear any existing interval
+  if (danceInterval) {
+    clearInterval(danceInterval);
+  }
+  
+  console.log("Starting robot dance interval");
+  
+  // Start a new interval for robot dancing
+  danceInterval = setInterval(() => {
     if (!isPlaying) return;
     
-    // Simulate beat detection
-    const now = Date.now();
-    if (now - lastBeatTime > beatThreshold) {
-      beatDetected = !beatDetected;
-      lastBeatTime = now;
-      
-      if (beatDetected) {
-        // Control robot on "beat"
-        const randomIntensity = Math.random() * 0.7 + 0.3; // Random value between 0.3 and 1.0
-        robotApi.dance(randomIntensity);
-        robotApi.shakeNeck(randomIntensity);
-        robotApi.cycleColor();
-        
-        // Draw simple visualizer effect
-        drawSimpleVisualizer();
-      }
+    // Generate random intensity between 0.3 and 1.0
+    const intensity = Math.random() * 0.7 + 0.3;
+    
+    console.log("Dance trigger - intensity:", intensity);
+    
+    // Trigger robot actions
+    robotApi.dance(intensity);
+    
+    // Wait a bit then trigger neck movement
+    setTimeout(() => {
+      robotApi.shakeNeck(intensity);
+    }, 150);
+    
+    // Change color less frequently
+    if (Math.random() > 0.5) {
+      robotApi.cycleColor();
     }
-  }, 300); // Check approximately every 300ms
+    
+  }, 800); // Trigger dance moves every 800ms
 }
 
 // Simple visualizer for older browsers
@@ -357,24 +384,48 @@ function startVisualizer() {
   }
 }
 
+// Start visualizer animation
+function activateVisualizer() {
+  // Always show the CSS visualizer for better compatibility
+  document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
+  
+  // Start robot dance sequence based on timer, not audio analysis
+  startRobotDance();
+}
+
 // Play/Pause audio
 function togglePlay() {
   try {
     if (!audioContext) {
       initAudio();
-      startVisualizer();
-      
-      // Try to connect to robot
-      robotApi.connect();
     }
     
     if (isPlaying) {
+      // Pause
       audioPlayer.pause();
       playButton.textContent = 'Let\'s Dance!';
       isPlaying = false;
+      
+      // Stop the dance interval
+      if (danceInterval) {
+        clearInterval(danceInterval);
+        danceInterval = null;
+      }
     } else {
+      // Play
+      console.log("Attempting to play audio...");
+      
+      // Connect to robot if not already connected
+      if (!robotApi.isConnected) {
+        robotApi.connect();
+      }
+      
+      // Activate visualizer and robot dance
+      activateVisualizer();
+      
       audioPlayer.play()
         .then(() => {
+          console.log("Audio playing successfully");
           playButton.textContent = 'Pause';
           isPlaying = true;
         })
@@ -504,44 +555,11 @@ document.addEventListener('DOMContentLoaded', () => {
   canvas.width = canvas.clientWidth || 300;
   canvas.height = canvas.clientHeight || 200;
   
-  // Draw initial black background
-  ctx.fillStyle = 'rgb(0, 0, 0)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
   // Try to connect to robot on page load
   robotApi.connect();
   
-  // Detect old WebView - check for specific user agent or feature compatibility
-  try {
-    // Feature detection to determine if we need compatibility mode
-    if (!window.AudioContext && !window.webkitAudioContext) {
-      useSimpleVisualizer = true;
-      console.warn("AudioContext not supported, using simple visualizer");
-    }
-    
-    // Add another test - try to draw something on canvas
-    try {
-      const testCanvas = document.createElement('canvas');
-      const testCtx = testCanvas.getContext('2d');
-      testCanvas.width = 10;
-      testCanvas.height = 10;
-      testCtx.fillStyle = 'red';
-      testCtx.fillRect(0, 0, 10, 10);
-      
-      // If this works, canvas is supported
-      const imgData = testCtx.getImageData(5, 5, 1, 1);
-      if (!imgData || imgData.data[0] !== 255) {
-        throw new Error('Canvas test failed');
-      }
-    } catch (canvasError) {
-      // Canvas drawing failed, use CSS visualizer
-      document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
-      console.warn("Canvas not working properly, using CSS fallback visualizer", canvasError);
-    }
-  } catch (e) {
-    useSimpleVisualizer = true;
-    // Show CSS fallback visualizer
-    document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
-    console.warn("Error detecting audio/canvas features, using fallback visualizer", e);
-  }
+  // Always use CSS visualizer for better compatibility
+  document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
+  
+  console.log("Page loaded and initialized");
 }); 
