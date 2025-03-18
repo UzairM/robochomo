@@ -112,14 +112,23 @@ const robotApi = {
     
     console.log('Shaking neck with intensity:', intensity);
     
-    // Current neck position plus random movement based on intensity
-    const movement = Math.floor(intensity * 150);
-    const currentPos = NECK_POSITIONS.center;
-    Ohmni.setNeckPosition(currentPos + movement, 90);
+    // Make sure neck torque is enabled
+    Ohmni.setNeckTorqueEnabled(1);
     
+    // Use wider range and higher speed like in sample.md
+    const upPosition = 350;
+    const downPosition = 550;
+    const speed = 140;  // Higher speed value from sample
+    
+    // Sequence the movements with proper timing
+    Ohmni.setNeckPosition(downPosition, speed);
     setTimeout(() => {
-      Ohmni.setNeckPosition(currentPos - movement, 90);
-    }, 300);
+      Ohmni.setNeckPosition(upPosition, speed);
+      setTimeout(() => {
+        // Return to center
+        Ohmni.setNeckPosition(NECK_POSITIONS.center, speed);
+      }, 500);
+    }, 500);
   },
   
   // Cycle LED colors
