@@ -71,10 +71,39 @@ const robotApi = {
     console.log('Dancing with intensity:', intensity);
     
     const speed = Math.floor(intensity * 200);
-    Ohmni.move(speed, -speed, 600);
-    setTimeout(() => {
-      Ohmni.move(-speed, speed, 600);
-    }, 650);
+    
+    // Randomly choose between different dance moves
+    const danceMove = Math.floor(Math.random() * 4);
+    
+    switch(danceMove) {
+      case 0: // Spin left
+        Ohmni.move(-speed, speed, 600);
+        setTimeout(() => {
+          Ohmni.move(speed, -speed, 600);
+        }, 650);
+        break;
+      case 1: // Spin right
+        Ohmni.move(speed, -speed, 600);
+        setTimeout(() => {
+          Ohmni.move(-speed, speed, 600);
+        }, 650);
+        break;
+      case 2: // Forward-backward
+        Ohmni.move(speed, speed, 600);
+        setTimeout(() => {
+          Ohmni.move(-speed, -speed, 600);
+        }, 650);
+        break;
+      case 3: // Wiggle
+        Ohmni.move(speed/2, -speed/2, 300);
+        setTimeout(() => {
+          Ohmni.move(-speed/2, speed/2, 300);
+        }, 350);
+        setTimeout(() => {
+          Ohmni.move(speed/2, -speed/2, 300);
+        }, 700);
+        break;
+    }
   },
   
   // Move robot's neck to beat
