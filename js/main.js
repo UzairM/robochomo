@@ -16,6 +16,7 @@ let isPlaying = false;
 let lastBeatTime = 0;
 let beatThreshold = 200; // ms between beats
 let beatDetected = false;
+let useSimpleVisualizer = true; // Set to true by default for Ohmni WebView
 
 // Movement constants
 const MOVE_SPEED = 70;
@@ -197,99 +198,194 @@ const robotApi = {
   }
 };
 
-// Initialize Audio Context
+// Initialize Audio Context with fallback for older browsers
 function initAudio() {
-  audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioContext.createAnalyser();
-  
-  // Connect audio player to analyzer
-  const source = audioContext.createMediaElementSource(audioPlayer);
-  source.connect(analyser);
-  analyser.connect(audioContext.destination);
-  
-  // Set up analyzer
-  analyser.fftSize = 256;
-  bufferLength = analyser.frequencyBinCount;
-  dataArray = new Uint8Array(bufferLength);
-  
-  // Set canvas size
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
+  try {
+    // Try modern Web Audio API
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    
+    // Connect audio player to analyzer
+    const source = audioContext.createMediaElementSource(audioPlayer);
+    source.connect(analyser);
+    analyser.connect(audioContext.destination);
+    
+    // Set up analyzer with smaller FFT size for better compatibility
+    analyser.fftSize = 128; // Reduced from 256
+    bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+    
+    // Set canvas size
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    
+    console.log("Using modern Web Audio API");
+  } catch (e) {
+    console.warn("Web Audio API not fully supported, using simple visualizer", e);
+    useSimpleVisualizer = true;
+    
+    // Set up simple beat detection via audio element
+    setupSimpleAudioDetection();
+  }
 }
 
-// Draw beat visualizer
-function drawVisualizer() {
-  if (!audioContext) return;
+// Simple Audio Detection for older browsers
+function setupSimpleAudioDetection() {
+  // Clear canvas with background
+  ctx.fillStyle = 'rgb(0, 0, 0)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  requestAnimationFrame(drawVisualizer);
-  
-  // Get frequency data
-  analyser.getByteFrequencyData(dataArray);
-  
+  // Set up a simple timer-based "visualizer"
+  setInterval(() => {
+    if (!isPlaying) return;
+    
+    // Simulate beat detection
+    const now = Date.now();
+    if (now - lastBeatTime > beatThreshold) {
+      beatDetected = !beatDetected;
+      lastBeatTime = now;
+      
+      if (beatDetected) {
+        // Control robot on "beat"
+        const randomIntensity = Math.random() * 0.7 + 0.3; // Random value between 0.3 and 1.0
+        robotApi.dance(randomIntensity);
+        robotApi.shakeNeck(randomIntensity);
+        robotApi.cycleColor();
+        
+        // Draw simple visualizer effect
+        drawSimpleVisualizer();
+      }
+    }
+  }, 300); // Check approximately every 300ms
+}
+
+// Simple visualizer for older browsers
+function drawSimpleVisualizer() {
   // Clear canvas
   ctx.fillStyle = 'rgb(0, 0, 0)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  // Calculate average bass frequency (where beats usually are)
-  let bassSum = 0;
-  const bassRange = 8; // First few frequency bins for bass
-  for (let i = 0; i < bassRange; i++) {
-    bassSum += dataArray[i];
-  }
-  const bassAvg = bassSum / bassRange;
+  const barCount = 20; // Fewer bars for better performance
+  const barWidth = canvas.width / barCount;
   
-  // Beat detection
-  const now = Date.now();
-  if (bassAvg > 200 && now - lastBeatTime > beatThreshold) {
-    beatDetected = true;
-    lastBeatTime = now;
+  // Draw simple bars with random heights
+  for (let i = 0; i < barCount; i++) {
+    const height = Math.random() * canvas.height * 0.8;
     
-    // Control robot on beat
-    const intensity = bassAvg / 255;
-    robotApi.dance(intensity);
-    robotApi.shakeNeck(intensity);
-    robotApi.cycleColor();
+    // Color based on position
+    const hue = (i / barCount) * 360;
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    
+    // Draw bar
+    ctx.fillRect(
+      i * barWidth, 
+      canvas.height - height, 
+      barWidth - 2, 
+      height
+    );
+  }
+}
+
+// Modern visualizer using Web Audio API
+function drawModernVisualizer() {
+  if (!audioContext || useSimpleVisualizer) return;
+  
+  requestAnimationFrame(drawModernVisualizer);
+  
+  try {
+    // Get frequency data
+    analyser.getByteFrequencyData(dataArray);
+    
+    // Clear canvas
+    ctx.fillStyle = 'rgb(0, 0, 0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Calculate average bass frequency (where beats usually are)
+    let bassSum = 0;
+    const bassRange = 4; // First few frequency bins for bass (reduced from 8)
+    for (let i = 0; i < bassRange; i++) {
+      bassSum += dataArray[i];
+    }
+    const bassAvg = bassSum / bassRange;
+    
+    // Beat detection
+    const now = Date.now();
+    if (bassAvg > 170 && now - lastBeatTime > beatThreshold) {
+      beatDetected = true;
+      lastBeatTime = now;
+      
+      // Control robot on beat
+      const intensity = bassAvg / 255;
+      robotApi.dance(intensity);
+      robotApi.shakeNeck(intensity);
+      robotApi.cycleColor();
+    } else {
+      beatDetected = false;
+    }
+    
+    // Draw a smaller number of bars for better performance
+    const skipFactor = 2; // Only draw every nth bar
+    const barWidth = (canvas.width / (bufferLength / skipFactor));
+    let x = 0;
+    
+    for (let i = 0; i < bufferLength; i += skipFactor) {
+      const barHeight = dataArray[i] / 255 * canvas.height;
+      
+      // Color based on frequency and beat detection
+      const hue = i / bufferLength * 360;
+      const saturation = beatDetected ? '100%' : '70%';
+      const lightness = beatDetected ? '50%' : '40%';
+      
+      ctx.fillStyle = `hsl(${hue}, ${saturation}, ${lightness})`;
+      ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+      
+      x += barWidth;
+    }
+  } catch (e) {
+    console.error("Error in visualizer, switching to simple mode", e);
+    useSimpleVisualizer = true;
+    setupSimpleAudioDetection();
+  }
+}
+
+// Choose appropriate visualizer and start it
+function startVisualizer() {
+  if (useSimpleVisualizer) {
+    drawSimpleVisualizer();
   } else {
-    beatDetected = false;
-  }
-  
-  // Draw bars
-  const barWidth = (canvas.width / bufferLength) * 2.5;
-  let x = 0;
-  
-  for (let i = 0; i < bufferLength; i++) {
-    const barHeight = dataArray[i] / 255 * canvas.height;
-    
-    // Color based on frequency and beat detection
-    const hue = i / bufferLength * 360;
-    const saturation = beatDetected ? '100%' : '70%';
-    const lightness = beatDetected ? '50%' : '40%';
-    
-    ctx.fillStyle = `hsl(${hue}, ${saturation}, ${lightness})`;
-    ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-    
-    x += barWidth + 1;
+    drawModernVisualizer();
   }
 }
 
 // Play/Pause audio
 function togglePlay() {
-  if (!audioContext) {
-    initAudio();
-    drawVisualizer();
+  try {
+    if (!audioContext) {
+      initAudio();
+      startVisualizer();
+      
+      // Try to connect to robot
+      robotApi.connect();
+    }
     
-    // Try to connect to robot
-    robotApi.connect();
-  }
-  
-  if (isPlaying) {
-    audioPlayer.pause();
-    playButton.textContent = 'Let\'s Dance!';
-    isPlaying = false;
-  } else {
-    audioPlayer.play();
-    playButton.textContent = 'Pause';
-    isPlaying = true;
+    if (isPlaying) {
+      audioPlayer.pause();
+      playButton.textContent = 'Let\'s Dance!';
+      isPlaying = false;
+    } else {
+      audioPlayer.play()
+        .then(() => {
+          playButton.textContent = 'Pause';
+          isPlaying = true;
+        })
+        .catch(err => {
+          console.error("Error playing audio:", err);
+          alert("Could not play audio. Please try again.");
+        });
+    }
+  } catch (e) {
+    console.error("Error toggling play:", e);
+    alert("Error playing audio. Your browser may not support the required features.");
   }
 }
 
@@ -404,6 +500,48 @@ window.addEventListener('resize', () => {
 document.addEventListener('DOMContentLoaded', () => {
   renderContent();
   
+  // Set up canvas with basic size
+  canvas.width = canvas.clientWidth || 300;
+  canvas.height = canvas.clientHeight || 200;
+  
+  // Draw initial black background
+  ctx.fillStyle = 'rgb(0, 0, 0)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
   // Try to connect to robot on page load
   robotApi.connect();
+  
+  // Detect old WebView - check for specific user agent or feature compatibility
+  try {
+    // Feature detection to determine if we need compatibility mode
+    if (!window.AudioContext && !window.webkitAudioContext) {
+      useSimpleVisualizer = true;
+      console.warn("AudioContext not supported, using simple visualizer");
+    }
+    
+    // Add another test - try to draw something on canvas
+    try {
+      const testCanvas = document.createElement('canvas');
+      const testCtx = testCanvas.getContext('2d');
+      testCanvas.width = 10;
+      testCanvas.height = 10;
+      testCtx.fillStyle = 'red';
+      testCtx.fillRect(0, 0, 10, 10);
+      
+      // If this works, canvas is supported
+      const imgData = testCtx.getImageData(5, 5, 1, 1);
+      if (!imgData || imgData.data[0] !== 255) {
+        throw new Error('Canvas test failed');
+      }
+    } catch (canvasError) {
+      // Canvas drawing failed, use CSS visualizer
+      document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
+      console.warn("Canvas not working properly, using CSS fallback visualizer", canvasError);
+    }
+  } catch (e) {
+    useSimpleVisualizer = true;
+    // Show CSS fallback visualizer
+    document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
+    console.warn("Error detecting audio/canvas features, using fallback visualizer", e);
+  }
 }); 

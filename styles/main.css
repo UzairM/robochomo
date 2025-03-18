@@ -91,12 +91,88 @@ h2 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* Visualizer container to hold both canvas and CSS fallback */
+.visualizer-container {
+  width: 100%;
+  height: 200px;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+/* Canvas visualizer */
 .visualizer {
   width: 100%;
   height: 200px;
   background-color: #000;
   border-radius: 8px;
-  margin-bottom: 1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+/* CSS Fallback visualizer */
+.css-visualizer {
+  width: 100%;
+  height: 200px;
+  background-color: #000;
+  border-radius: 8px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 10px;
+  overflow: hidden;
+}
+
+/* Visualizer bars */
+.css-visualizer .bar {
+  flex: 1;
+  margin: 0 2px;
+  background: linear-gradient(to top, #3498db, #2ecc71, #e74c3c);
+  border-radius: 4px 4px 0 0;
+  height: 50%;
+  max-height: 180px;
+  animation: pulse 0.6s infinite alternate;
+}
+
+/* Different timing for each bar */
+.css-visualizer .bar:nth-child(1) { animation-delay: -0.9s; }
+.css-visualizer .bar:nth-child(2) { animation-delay: -0.8s; }
+.css-visualizer .bar:nth-child(3) { animation-delay: -0.7s; }
+.css-visualizer .bar:nth-child(4) { animation-delay: -0.6s; }
+.css-visualizer .bar:nth-child(5) { animation-delay: -0.5s; }
+.css-visualizer .bar:nth-child(6) { animation-delay: -0.4s; }
+.css-visualizer .bar:nth-child(7) { animation-delay: -0.3s; }
+.css-visualizer .bar:nth-child(8) { animation-delay: -0.2s; }
+.css-visualizer .bar:nth-child(9) { animation-delay: -0.1s; }
+.css-visualizer .bar:nth-child(10) { animation-delay: 0s; }
+.css-visualizer .bar:nth-child(11) { animation-delay: -0.2s; }
+.css-visualizer .bar:nth-child(12) { animation-delay: -0.4s; }
+.css-visualizer .bar:nth-child(13) { animation-delay: -0.6s; }
+.css-visualizer .bar:nth-child(14) { animation-delay: -0.8s; }
+.css-visualizer .bar:nth-child(15) { animation-delay: -1.0s; }
+.css-visualizer .bar:nth-child(16) { animation-delay: -1.2s; }
+
+/* Animation for the bars */
+@keyframes pulse {
+  0% {
+    height: 10%;
+  }
+  50% {
+    height: 30%;
+  }
+  100% {
+    height: 70%;
+  }
+}
+
+/* Class to show CSS visualizer when canvas fails */
+.show-css-visualizer .css-visualizer {
+  z-index: 2;
 }
 
 .item {
