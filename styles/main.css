@@ -91,31 +91,6 @@ h2 {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.test-button {
-  background-color: var(--secondary-color);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 1rem 2rem;
-  margin-left: 1rem;
-  font-size: 1.2rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.test-button:hover {
-  background-color: #27ae60;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-}
-
-.test-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
 /* Visualizer container to hold both canvas and CSS fallback */
 .visualizer-container {
   width: 100%;

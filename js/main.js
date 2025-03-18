@@ -24,8 +24,8 @@ let danceInterval = null; // Interval for robot dancing
 document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
 
 // Movement constants
-const MOVE_SPEED = 180; // Increased to make movement more noticeable
-const MOVE_TIME = 600;  // Longer movement time
+const MOVE_SPEED = 150;
+const MOVE_TIME = 500;
 
 // Neck position constants
 const NECK_POSITIONS = {
@@ -45,7 +45,6 @@ const robotApi = {
     {h: 300, s: 100, v: 100},  // Purple
   ],
   currentColorIndex: 0,
-  dancePattern: 0, // Track which dance pattern to use
   
   // Connect to robot
   connect: function() {
@@ -71,83 +70,11 @@ const robotApi = {
     
     console.log('Dancing with intensity:', intensity);
     
-    // Cycle through different dance patterns
-    this.dancePattern = (this.dancePattern + 1) % 3;
-    
-    // Use different patterns to try to get the robot to turn
-    switch(this.dancePattern) {
-      case 0:
-        this.dancePattern1(intensity);
-        break;
-      case 1:
-        this.dancePattern2(intensity);
-        break;
-      case 2:
-        this.dancePattern3(intensity);
-        break;
-    }
-  },
-  
-  // Dance pattern 1: Basic turning attempt
-  dancePattern1: function(intensity) {
-    const speed = Math.floor(intensity * 300);
-    console.log('Dance pattern 1 - left/right turns with speed:', speed);
-    
-    // First try to turn left
-    Ohmni.move(-speed, speed, 800);
-    
-    // Then turn right
+    const speed = Math.floor(intensity * 200);
+    Ohmni.move(speed, -speed, 600);
     setTimeout(() => {
-      Ohmni.move(speed, -speed, 800);
-      
-      // Then stop
-      setTimeout(() => {
-        Ohmni.move(0, 0, 100);
-      }, 850);
-    }, 850);
-  },
-  
-  // Dance pattern 2: Forward/backward with higher speed
-  dancePattern2: function(intensity) {
-    const speed = Math.floor(intensity * 250);
-    console.log('Dance pattern 2 - forward/backward with speed:', speed);
-    
-    // Forward
-    Ohmni.move(speed, speed, 500);
-    
-    // Then backward
-    setTimeout(() => {
-      Ohmni.move(-speed, -speed, 500);
-      
-      // Then stop
-      setTimeout(() => {
-        Ohmni.move(0, 0, 100);
-      }, 550);
-    }, 550);
-  },
-  
-  // Dance pattern 3: Zigzag movement
-  dancePattern3: function(intensity) {
-    const speed = Math.floor(intensity * 220);
-    console.log('Dance pattern 3 - zigzag with speed:', speed);
-    
-    // Forward right
-    Ohmni.move(speed, speed/2, 400);
-    
-    setTimeout(() => {
-      // Forward left
-      Ohmni.move(speed/2, speed, 400);
-      
-      setTimeout(() => {
-        // Backward
-        Ohmni.move(-speed, -speed, 400);
-        
-        // Then stop
-        setTimeout(() => {
-          Ohmni.move(0, 0, 100);
-        }, 450);
-      }, 450);
-    }, 450);
+      Ohmni.move(-speed, speed, 600);
+    }, 650);
   },
   
   // Move robot's neck to beat
@@ -157,15 +84,13 @@ const robotApi = {
     console.log('Shaking neck with intensity:', intensity);
     
     // Current neck position plus random movement based on intensity
-    const movement = Math.floor(intensity * 200); // Increased from 150
+    const movement = Math.floor(intensity * 150);
     const currentPos = NECK_POSITIONS.center;
-    
-    // More extreme neck movement
-    Ohmni.setNeckPosition(currentPos + movement, 95);
+    Ohmni.setNeckPosition(currentPos + movement, 90);
     
     setTimeout(() => {
-      Ohmni.setNeckPosition(currentPos - movement, 95);
-    }, 400);
+      Ohmni.setNeckPosition(currentPos - movement, 90);
+    }, 300);
   },
   
   // Cycle LED colors
@@ -340,8 +265,8 @@ function startRobotDance() {
   danceInterval = setInterval(() => {
     if (!isPlaying) return;
     
-    // Generate random intensity between 0.7 and 1.0 for even more pronounced movements
-    const intensity = Math.random() * 0.3 + 0.7;
+    // Generate random intensity between 0.5 and 1.0 for more pronounced movements
+    const intensity = Math.random() * 0.5 + 0.5;
     
     console.log("Dance trigger - intensity:", intensity);
     
@@ -351,12 +276,12 @@ function startRobotDance() {
     // Wait a bit then trigger neck movement
     setTimeout(() => {
       robotApi.shakeNeck(intensity);
-    }, 1000); // Increased delay to avoid overlapping with more complex dance moves
+    }, 700); // Increased delay to avoid overlapping with dance movement
     
     // Change color with each dance move
     robotApi.cycleColor();
     
-  }, 3500); // Increased from 2000ms to 3500ms to give more time for each complex dance pattern
+  }, 2000); // Increased from 800ms to 2000ms to give more time for each movement
 }
 
 // Simple visualizer for older browsers
@@ -635,62 +560,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
   
   console.log("Page loaded and initialized");
-});
-
-// Direct rotation test - try multiple approaches
-function testRotation() {
-  if (!robotApi.isConnected) {
-    robotApi.connect();
-  }
-  
-  console.log("Starting rotation test sequence");
-  
-  // Test rotation approach 1: Direct left/right wheel speed difference
-  const rotationTest = async () => {
-    try {
-      // Method 1: Strong left rotation
-      console.log("Test 1: Strong left rotation");
-      Ohmni.setLightColor(0, 100, 100); // Red during left turn
-      Ohmni.move(-400, 400, 1500);
-      
-      // Pause
-      await new Promise(resolve => setTimeout(resolve, 1600));
-      
-      // Method 2: Strong right rotation
-      console.log("Test 2: Strong right rotation");
-      Ohmni.setLightColor(240, 100, 100); // Blue during right turn
-      Ohmni.move(400, -400, 1500);
-      
-      // Pause
-      await new Promise(resolve => setTimeout(resolve, 1600));
-      
-      // Method 3: Try rotation with uneven but same-sign speeds
-      console.log("Test 3: Uneven wheels rotation");
-      Ohmni.setLightColor(120, 100, 100); // Green
-      Ohmni.move(400, 100, 1500); // Right wheel faster than left
-      
-      // Pause
-      await new Promise(resolve => setTimeout(resolve, 1600));
-      
-      // Method 4: Small circles
-      console.log("Test 4: Small circles");
-      Ohmni.setLightColor(60, 100, 100); // Yellow
-      Ohmni.move(300, -100, 2000); // One forward, one backward but different magnitudes
-      
-      // End with stopping
-      await new Promise(resolve => setTimeout(resolve, 2100));
-      Ohmni.move(0, 0, 100);
-      Ohmni.setLightColor(0, 0, 100); // White at end
-      
-      console.log("Rotation test sequence completed");
-    } catch (error) {
-      console.error("Error during rotation test:", error);
-    }
-  };
-  
-  rotationTest();
-}
-
-// Add event listener for the rotation test button
-const rotateTestButton = document.getElementById('rotateTestButton');
-rotateTestButton.addEventListener('click', testRotation); 
+}); 
