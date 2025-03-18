@@ -23,9 +23,9 @@ const MOVE_TIME = 300;
 
 // Neck position constants
 const NECK_POSITIONS = {
-  up: 20,     // Looking up
-  center: 50,  // Center position
-  down: 80     // Looking down
+  up: 600,    // Looking up value from API docs (lower value)
+  center: 800,  // Center position
+  down: 1000    // Looking down value from API docs (higher value)
 };
 
 // Ohmni Robot Control
@@ -45,13 +45,19 @@ const robotApi = {
     try {
       if (typeof Ohmni !== 'undefined') {
         this.isConnected = true;
-        console.log('Robot connected');
+        console.log('Robot connected successfully. API available.');
+        
+        // Log available methods for debugging
+        console.log('Available Ohmni methods:', Object.keys(Ohmni).filter(key => typeof Ohmni[key] === 'function'));
+        
         this.resetPosition();
       } else {
-        console.warn('Ohmni API not available');
+        console.warn('Ohmni API not available - running in simulation mode');
+        this.isConnected = false;
       }
     } catch (error) {
       console.error('Error connecting to robot:', error);
+      this.isConnected = false;
     }
   },
   
@@ -71,8 +77,8 @@ const robotApi = {
     if (!this.isConnected) return;
     
     // Current neck position plus random movement based on intensity
-    const movement = Math.floor(intensity * 20) - 10;
-    Ohmni.setNeckPosition(50 + movement, 10);
+    const movement = Math.floor(intensity * 100) - 50;
+    Ohmni.setNeckPosition(NECK_POSITIONS.center + movement, 30);
   },
   
   // Cycle LED colors
@@ -168,14 +174,17 @@ const robotApi = {
         break;
     }
     
-    Ohmni.setNeckPosition(pos, 30);
+    // Using values from API docs: Ohmni.setNeckPosition(pos, ival)
+    // where pos is position (0-1023) and ival is speed (1-100)
+    console.log('Setting neck position to:', pos);
+    Ohmni.setNeckPosition(pos, 50);
   },
   
   // Reset robot position
   resetPosition: function() {
     if (!this.isConnected) return;
     
-    Ohmni.setNeckPosition(NECK_POSITIONS.center, 10); // Center position
+    Ohmni.setNeckPosition(NECK_POSITIONS.center, 30); // Center position
     Ohmni.setLightColor(0, 0, 100); // White light
   }
 };
