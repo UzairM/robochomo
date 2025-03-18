@@ -23,9 +23,9 @@ const MOVE_TIME = 300;
 
 // Neck position constants
 const NECK_POSITIONS = {
-  up: 600,    // Looking up value from API docs (lower value)
-  center: 800,  // Center position
-  down: 1000    // Looking down value from API docs (higher value)
+  up: 250,     // Looking up (lower value based on sample.md)
+  center: 450,  // Center position
+  down: 600     // Looking down (higher value based on sample.md)
 };
 
 // Ohmni Robot Control
@@ -47,17 +47,14 @@ const robotApi = {
         this.isConnected = true;
         console.log('Robot connected successfully. API available.');
         
-        // Log available methods for debugging
-        console.log('Available Ohmni methods:', Object.keys(Ohmni).filter(key => typeof Ohmni[key] === 'function'));
-        
+        // Enable neck torque when connecting
+        Ohmni.setNeckTorqueEnabled(1);
         this.resetPosition();
       } else {
-        console.warn('Ohmni API not available - running in simulation mode');
-        this.isConnected = false;
+        console.warn('Ohmni API not available');
       }
     } catch (error) {
       console.error('Error connecting to robot:', error);
-      this.isConnected = false;
     }
   },
   
@@ -77,8 +74,13 @@ const robotApi = {
     if (!this.isConnected) return;
     
     // Current neck position plus random movement based on intensity
-    const movement = Math.floor(intensity * 100) - 50;
-    Ohmni.setNeckPosition(NECK_POSITIONS.center + movement, 30);
+    const movement = Math.floor(intensity * 50);
+    const currentPos = NECK_POSITIONS.center;
+    Ohmni.setNeckPosition(currentPos + movement, 100);
+    
+    setTimeout(() => {
+      Ohmni.setNeckPosition(currentPos - movement, 100);
+    }, 250);
   },
   
   // Cycle LED colors
@@ -160,6 +162,9 @@ const robotApi = {
   setNeckPosition: function(position) {
     if (!this.isConnected) return;
     
+    // Make sure neck torque is enabled
+    Ohmni.setNeckTorqueEnabled(1);
+    
     let pos;
     switch(position) {
       case 'up':
@@ -174,18 +179,21 @@ const robotApi = {
         break;
     }
     
-    // Using values from API docs: Ohmni.setNeckPosition(pos, ival)
-    // where pos is position (0-1023) and ival is speed (1-100)
+    // Using values from sample.md: Ohmni.setNeckPosition(pos, ival)
+    // where pos is position value and ival is speed (higher = faster)
     console.log('Setting neck position to:', pos);
-    Ohmni.setNeckPosition(pos, 50);
+    Ohmni.setNeckPosition(pos, 100);
   },
   
   // Reset robot position
   resetPosition: function() {
     if (!this.isConnected) return;
     
-    Ohmni.setNeckPosition(NECK_POSITIONS.center, 30); // Center position
-    Ohmni.setLightColor(0, 0, 100); // White light
+    Ohmni.setNeckTorqueEnabled(1);
+    setTimeout(() => {
+      Ohmni.setNeckPosition(NECK_POSITIONS.center, 100); // Center position
+      Ohmni.setLightColor(0, 0, 100); // White light
+    }, 500);
   }
 };
 
