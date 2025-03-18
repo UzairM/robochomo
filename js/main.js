@@ -24,14 +24,14 @@ let danceInterval = null; // Interval for robot dancing
 document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
 
 // Movement constants
-const MOVE_SPEED = 70;
-const MOVE_TIME = 300;
+const MOVE_SPEED = 150;
+const MOVE_TIME = 500;
 
 // Neck position constants
 const NECK_POSITIONS = {
-  up: 250,     // Looking up (lower value based on sample.md)
+  up: 200,     // More extreme up position (was 250)
   center: 450,  // Center position
-  down: 600     // Looking down (higher value based on sample.md)
+  down: 650     // More extreme down position (was 600)
 };
 
 // Ohmni Robot Control
@@ -70,11 +70,11 @@ const robotApi = {
     
     console.log('Dancing with intensity:', intensity);
     
-    const speed = Math.floor(intensity * 80);
-    Ohmni.move(speed, -speed, 300); // Turn quickly one way
+    const speed = Math.floor(intensity * 200);
+    Ohmni.move(speed, -speed, 600);
     setTimeout(() => {
-      Ohmni.move(-speed, speed, 300); // Then the other
-    }, 300);
+      Ohmni.move(-speed, speed, 600);
+    }, 650);
   },
   
   // Move robot's neck to beat
@@ -84,13 +84,13 @@ const robotApi = {
     console.log('Shaking neck with intensity:', intensity);
     
     // Current neck position plus random movement based on intensity
-    const movement = Math.floor(intensity * 50);
+    const movement = Math.floor(intensity * 150);
     const currentPos = NECK_POSITIONS.center;
-    Ohmni.setNeckPosition(currentPos + movement, 100);
+    Ohmni.setNeckPosition(currentPos + movement, 90);
     
     setTimeout(() => {
-      Ohmni.setNeckPosition(currentPos - movement, 100);
-    }, 250);
+      Ohmni.setNeckPosition(currentPos - movement, 90);
+    }, 300);
   },
   
   // Cycle LED colors
@@ -265,8 +265,8 @@ function startRobotDance() {
   danceInterval = setInterval(() => {
     if (!isPlaying) return;
     
-    // Generate random intensity between 0.3 and 1.0
-    const intensity = Math.random() * 0.7 + 0.3;
+    // Generate random intensity between 0.5 and 1.0 for more pronounced movements
+    const intensity = Math.random() * 0.5 + 0.5;
     
     console.log("Dance trigger - intensity:", intensity);
     
@@ -276,14 +276,12 @@ function startRobotDance() {
     // Wait a bit then trigger neck movement
     setTimeout(() => {
       robotApi.shakeNeck(intensity);
-    }, 150);
+    }, 700); // Increased delay to avoid overlapping with dance movement
     
-    // Change color less frequently
-    if (Math.random() > 0.5) {
-      robotApi.cycleColor();
-    }
+    // Change color with each dance move
+    robotApi.cycleColor();
     
-  }, 800); // Trigger dance moves every 800ms
+  }, 2000); // Increased from 800ms to 2000ms to give more time for each movement
 }
 
 // Simple visualizer for older browsers
