@@ -307,10 +307,13 @@ function startRobotDance() {
       robotApi.shakeNeck(intensity);
     }, 700); // Increased delay to avoid overlapping with dance movement
     
-    // Change color with each dance move
-    robotApi.cycleColor();
-    
   }, 2000); // Increased from 800ms to 2000ms to give more time for each movement
+
+  // Separate interval for faster light changes
+  setInterval(() => {
+    if (!isPlaying) return;
+    robotApi.cycleColor();
+  }, 500); // Change lights every 500ms
 }
 
 // Simple visualizer for older browsers
