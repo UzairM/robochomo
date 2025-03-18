@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Robot Dance Party</title>
   <link rel="stylesheet" href="styles/main.css">
-  <script src="https://api.ohmnilabs.com/ohmni-api/Ohmni-standalone.js"></script>
+  <script src="js/Ohmni-standalone.js"></script>
 </head>
 <body>
   <div class="container">
@@ -16,6 +16,42 @@
     </div>
     
     <canvas id="visualizer" class="visualizer"></canvas>
+    
+    <div class="robot-controls">
+      <div class="control-section">
+        <h2>LED Controls</h2>
+        <div class="button-group">
+          <button id="ledRed" class="control-button led-button" data-color="red">Red</button>
+          <button id="ledGreen" class="control-button led-button" data-color="green">Green</button>
+          <button id="ledBlue" class="control-button led-button" data-color="blue">Blue</button>
+          <button id="ledYellow" class="control-button led-button" data-color="yellow">Yellow</button>
+          <button id="ledPurple" class="control-button led-button" data-color="purple">Purple</button>
+          <button id="ledWhite" class="control-button led-button" data-color="white">White</button>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <h2>Movement Controls</h2>
+        <div class="button-group movement-pad">
+          <button id="moveForward" class="control-button move-button">↑</button>
+          <div class="movement-row">
+            <button id="moveLeft" class="control-button move-button">←</button>
+            <button id="moveStop" class="control-button move-button">⏹</button>
+            <button id="moveRight" class="control-button move-button">→</button>
+          </div>
+          <button id="moveBackward" class="control-button move-button">↓</button>
+        </div>
+      </div>
+      
+      <div class="control-section">
+        <h2>Neck Controls</h2>
+        <div class="button-group">
+          <button id="neckUp" class="control-button neck-button">Look Up</button>
+          <button id="neckCenter" class="control-button neck-button">Center</button>
+          <button id="neckDown" class="control-button neck-button">Look Down</button>
+        </div>
+      </div>
+    </div>
     
     <div id="content">
       <!-- Content will be dynamically loaded here -->

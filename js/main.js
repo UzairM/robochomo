@@ -5,12 +5,28 @@ const playButton = document.getElementById('playButton');
 const canvas = document.getElementById('visualizer');
 const ctx = canvas.getContext('2d');
 
+// Robot control buttons
+const ledButtons = document.querySelectorAll('.led-button');
+const moveButtons = document.querySelectorAll('.move-button');
+const neckButtons = document.querySelectorAll('.neck-button');
+
 // Audio Context and Analyzer setup
 let audioContext, analyser, dataArray, bufferLength;
 let isPlaying = false;
 let lastBeatTime = 0;
 let beatThreshold = 200; // ms between beats
 let beatDetected = false;
+
+// Movement constants
+const MOVE_SPEED = 70;
+const MOVE_TIME = 300;
+
+// Neck position constants
+const NECK_POSITIONS = {
+  up: 20,     // Looking up
+  center: 50,  // Center position
+  down: 80     // Looking down
+};
 
 // Ohmni Robot Control
 const robotApi = {
@@ -68,11 +84,98 @@ const robotApi = {
     Ohmni.setLightColor(color.h, color.s, color.v);
   },
   
+  // Set specific LED color
+  setColor: function(colorName) {
+    if (!this.isConnected) return;
+    
+    let h, s, v;
+    
+    switch(colorName) {
+      case 'red':
+        h = 0; s = 100; v = 100;
+        break;
+      case 'green':
+        h = 120; s = 100; v = 100;
+        break;
+      case 'blue':
+        h = 240; s = 100; v = 100;
+        break;
+      case 'yellow':
+        h = 60; s = 100; v = 100;
+        break;
+      case 'purple':
+        h = 300; s = 100; v = 100;
+        break;
+      case 'white':
+      default:
+        h = 0; s = 0; v = 100;
+        break;
+    }
+    
+    Ohmni.setLightColor(h, s, v);
+  },
+  
+  // Move in a specific direction
+  move: function(direction) {
+    if (!this.isConnected) return;
+    
+    let leftSpeed = 0, rightSpeed = 0;
+    
+    switch(direction) {
+      case 'forward':
+        leftSpeed = MOVE_SPEED;
+        rightSpeed = MOVE_SPEED;
+        break;
+      case 'backward':
+        leftSpeed = -MOVE_SPEED;
+        rightSpeed = -MOVE_SPEED;
+        break;
+      case 'left':
+        leftSpeed = -MOVE_SPEED / 2;
+        rightSpeed = MOVE_SPEED / 2;
+        break;
+      case 'right':
+        leftSpeed = MOVE_SPEED / 2;
+        rightSpeed = -MOVE_SPEED / 2;
+        break;
+      case 'stop':
+      default:
+        leftSpeed = 0;
+        rightSpeed = 0;
+        // Use longer time to ensure it stops
+        Ohmni.move(0, 0, 100);
+        return;
+    }
+    
+    Ohmni.move(leftSpeed, rightSpeed, MOVE_TIME);
+  },
+  
+  // Set neck position
+  setNeckPosition: function(position) {
+    if (!this.isConnected) return;
+    
+    let pos;
+    switch(position) {
+      case 'up':
+        pos = NECK_POSITIONS.up;
+        break;
+      case 'down':
+        pos = NECK_POSITIONS.down;
+        break;
+      case 'center':
+      default:
+        pos = NECK_POSITIONS.center;
+        break;
+    }
+    
+    Ohmni.setNeckPosition(pos, 30);
+  },
+  
   // Reset robot position
   resetPosition: function() {
     if (!this.isConnected) return;
     
-    Ohmni.setNeckPosition(50, 10); // Center position
+    Ohmni.setNeckPosition(NECK_POSITIONS.center, 10); // Center position
     Ohmni.setLightColor(0, 0, 100); // White light
   }
 };
@@ -195,6 +298,82 @@ const renderContent = () => {
   content.innerHTML = html;
 };
 
+// Handle LED button clicks
+ledButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    const color = button.getAttribute('data-color');
+    
+    // Connect to robot if not already connected
+    if (!robotApi.isConnected) {
+      robotApi.connect();
+    }
+    
+    robotApi.setColor(color);
+  });
+});
+
+// Handle movement button clicks
+moveButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    let direction;
+    
+    // Connect to robot if not already connected
+    if (!robotApi.isConnected) {
+      robotApi.connect();
+    }
+    
+    switch(button.id) {
+      case 'moveForward':
+        direction = 'forward';
+        break;
+      case 'moveBackward':
+        direction = 'backward';
+        break;
+      case 'moveLeft':
+        direction = 'left';
+        break;
+      case 'moveRight':
+        direction = 'right';
+        break;
+      case 'moveStop':
+        direction = 'stop';
+        break;
+    }
+    
+    if (direction) {
+      robotApi.move(direction);
+    }
+  });
+});
+
+// Handle neck button clicks
+neckButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    let position;
+    
+    // Connect to robot if not already connected
+    if (!robotApi.isConnected) {
+      robotApi.connect();
+    }
+    
+    switch(button.id) {
+      case 'neckUp':
+        position = 'up';
+        break;
+      case 'neckDown':
+        position = 'down';
+        break;
+      case 'neckCenter':
+        position = 'center';
+        break;
+    }
+    
+    if (position) {
+      robotApi.setNeckPosition(position);
+    }
+  });
+});
+
 // Event listeners
 playButton.addEventListener('click', togglePlay);
 
@@ -207,4 +386,7 @@ window.addEventListener('resize', () => {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   renderContent();
+  
+  // Try to connect to robot on page load
+  robotApi.connect();
 }); 
