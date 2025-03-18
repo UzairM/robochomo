@@ -19,7 +19,6 @@ let beatThreshold = 200; // ms between beats
 let beatDetected = false;
 let useSimpleVisualizer = true; // Set to true by default for Ohmni WebView
 let danceInterval = null; // Interval for robot dancing
-let colorInterval = null; // Separate interval for LED color changes
 
 // Always use CSS visualizer for Ohmni
 document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
@@ -30,9 +29,9 @@ const MOVE_TIME = 600;  // Longer movement time
 
 // Neck position constants
 const NECK_POSITIONS = {
-  up: 250,     // Match from sample.md
-  center: 450,  // Middle point
-  down: 600     // Match from sample.md
+  up: 200,     // More extreme up position (was 250)
+  center: 450,  // Center position
+  down: 650     // More extreme down position (was 600)
 };
 
 // Ohmni Robot Control
@@ -151,39 +150,22 @@ const robotApi = {
     }, 450);
   },
   
-  // Move robot's neck to beat - redesigned based on sample.md
+  // Move robot's neck to beat
   shakeNeck: function(intensity) {
     if (!this.isConnected) return;
     
     console.log('Shaking neck with intensity:', intensity);
     
-    // Make sure torque is enabled first
-    Ohmni.setNeckTorqueEnabled(1);
+    // Current neck position plus random movement based on intensity
+    const movement = Math.floor(intensity * 200); // Increased from 150
+    const currentPos = NECK_POSITIONS.center;
     
-    // Use the phase approach from sample.md
-    const neckSequence = async () => {
-      try {
-        // Move to up position first (use sample.md's values)
-        Ohmni.setNeckPosition(NECK_POSITIONS.up, 100);
-        
-        // Wait for movement to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Then move to down position
-        Ohmni.setNeckPosition(NECK_POSITIONS.down, 100);
-        
-        // Wait for movement to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Back to center
-        Ohmni.setNeckPosition(NECK_POSITIONS.center, 100);
-      } catch (error) {
-        console.error("Error during neck movement:", error);
-      }
-    };
+    // More extreme neck movement
+    Ohmni.setNeckPosition(currentPos + movement, 95);
     
-    // Execute the sequence
-    neckSequence();
+    setTimeout(() => {
+      Ohmni.setNeckPosition(currentPos - movement, 95);
+    }, 400);
   },
   
   // Cycle LED colors
@@ -299,54 +281,6 @@ const robotApi = {
       Ohmni.setNeckPosition(NECK_POSITIONS.center, 100); // Center position
       Ohmni.setLightColor(0, 0, 100); // White light
     }, 500);
-  },
-  
-  // Implement the nodding functionality from sample.md
-  nod: function() {
-    if (!this.isConnected) return;
-    
-    console.log('Nodding neck (sample.md method)');
-    
-    // Create phases array like in sample.md
-    const phases = [
-      (cb) => {
-        // Enable torque
-        Ohmni.setNeckTorqueEnabled(1);
-        setTimeout(cb, 500);
-      },
-      (cb) => {
-        // Move to down position
-        Ohmni.setNeckPosition(NECK_POSITIONS.down, 100);
-        setTimeout(cb, 1500);
-      },
-      (cb) => {
-        // Move to up position
-        Ohmni.setNeckPosition(NECK_POSITIONS.up, 100);
-        setTimeout(cb, 1500);
-      },
-      (cb) => {
-        // Back to center
-        Ohmni.setNeckPosition(NECK_POSITIONS.center, 100);
-        setTimeout(cb, 500);
-      }
-    ];
-    
-    // Run phases in sequence
-    this.runPhases(phases, 0);
-  },
-  
-  // Helper function to run phases in sequence (from sample.md)
-  runPhases: function(phases, index) {
-    // Check if we have something to do
-    if (index >= phases.length) return;
-    
-    // Get and run the function with a callback to trigger next phase
-    const fn = phases[index];
-    fn(() => {
-      setTimeout(() => {
-        this.runPhases(phases, index + 1);
-      }, 1);
-    });
   }
 };
 
@@ -393,30 +327,6 @@ function setupSimpleAudioDetection() {
   document.querySelector('.visualizer-container').classList.add('show-css-visualizer');
 }
 
-// Start fast color cycling
-function startColorCycling(speed = 500) {
-  // Clear any existing color interval
-  if (colorInterval) {
-    clearInterval(colorInterval);
-  }
-  
-  console.log(`Starting color cycling with interval ${speed}ms`);
-  
-  // Create a new interval that cycles colors quickly
-  colorInterval = setInterval(() => {
-    if (!isPlaying) return;
-    robotApi.cycleColor();
-  }, speed); // Change colors every X milliseconds (faster than dance moves)
-}
-
-// Stop color cycling
-function stopColorCycling() {
-  if (colorInterval) {
-    clearInterval(colorInterval);
-    colorInterval = null;
-  }
-}
-
 // Simple timer-based robot dance
 function startRobotDance() {
   // Clear any existing interval
@@ -425,9 +335,6 @@ function startRobotDance() {
   }
   
   console.log("Starting robot dance interval");
-  
-  // Start fast color cycling
-  startColorCycling(150); // LED changes every 150ms (much faster)
   
   // Start a new interval for robot dancing
   danceInterval = setInterval(() => {
@@ -443,13 +350,13 @@ function startRobotDance() {
     
     // Wait a bit then trigger neck movement
     setTimeout(() => {
-      // Use the sample.md-based implementation
-      robotApi.nod();
-    }, 1800); // Increased delay to avoid overlapping with more complex dance moves
+      robotApi.shakeNeck(intensity);
+    }, 1000); // Increased delay to avoid overlapping with more complex dance moves
     
-    // Color is handled by separate interval now
+    // Change color with each dance move
+    robotApi.cycleColor();
     
-  }, 5000); // Increased to give more time for the full nodding sequence
+  }, 3500); // Increased from 2000ms to 3500ms to give more time for each complex dance pattern
 }
 
 // Simple visualizer for older browsers
@@ -577,9 +484,6 @@ function togglePlay() {
         clearInterval(danceInterval);
         danceInterval = null;
       }
-      
-      // Stop color cycling
-      stopColorCycling();
     } else {
       // Play
       console.log("Attempting to play audio...");
@@ -710,19 +614,6 @@ neckButtons.forEach(button => {
 // Event listeners
 playButton.addEventListener('click', togglePlay);
 
-// Add event listener for the rotation test button
-const rotateTestButton = document.getElementById('rotateTestButton');
-rotateTestButton.addEventListener('click', testRotation);
-
-// Add event listener for the nod test button
-const nodButton = document.getElementById('nodButton');
-nodButton.addEventListener('click', () => {
-  if (!robotApi.isConnected) {
-    robotApi.connect();
-  }
-  robotApi.nod();
-});
-
 // Handle window resize
 window.addEventListener('resize', () => {
   canvas.width = canvas.clientWidth;
@@ -798,4 +689,8 @@ function testRotation() {
   };
   
   rotationTest();
-} 
+}
+
+// Add event listener for the rotation test button
+const rotateTestButton = document.getElementById('rotateTestButton');
+rotateTestButton.addEventListener('click', testRotation); 
